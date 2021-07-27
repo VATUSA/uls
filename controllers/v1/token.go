@@ -1,5 +1,5 @@
 /*
-   ZAU Single Sign-On
+   VATUSA Unified Login Scheme v3
    Copyright (C) 2021  Daniel A. Hawton <daniel@hawton.org>
 
    This program is free software: you can redistribute it and/or modify
@@ -32,8 +32,8 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/vatusa/uls/database/models"
 	utils "github.com/vzau/common/utils"
-	"github.com/vzau/sso/database/models"
 	dbTypes "github.com/vzau/types/database"
 )
 

@@ -1,5 +1,5 @@
 /*
-   ZAU Single Sign-On
+   VATUSA Unified Login Scheme v3
    Copyright (C) 2021  Daniel A. Hawton <daniel@hawton.org>
 
    This program is free software: you can redistribute it and/or modify
@@ -29,10 +29,8 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/robfig/cron/v3"
-	"github.com/vzau/sso/database/models"
-	"github.com/vzau/sso/database/seed"
-	"github.com/vzau/sso/utils"
-	dbTypes "github.com/vzau/types/database"
+	"github.com/vatusa/uls/database/models"
+	"github.com/vatusa/uls/utils"
 )
 
 var log = log4g.Category("main")
@@ -40,12 +38,12 @@ var log = log4g.Category("main")
 func main() {
 	log4g.SetLogLevel(log4g.DEBUG)
 
-	intro := figure.NewFigure("ZDV SSO", "", false).Slicify()
+	intro := figure.NewFigure("VATUSA ULSv3", "", false).Slicify()
 	for i := 0; i < len(intro); i++ {
 		log.Info(intro[i])
 	}
 
-	log.Info("Starting ZDV SSO")
+	log.Info("Starting VATUSA ULSv3")
 	log.Info("Checking for .env, loading if exists")
 	if _, err := os.Stat(".env"); err == nil {
 		log.Info("Found, loading")
@@ -67,8 +65,7 @@ func main() {
 	}
 
 	log.Info("Connecting to database and handling migrations")
-	models.Connect(utils.Getenv("DB_USERNAME", "root"), utils.Getenv("DB_PASSWORD", "secret"), utils.Getenv("DB_HOSTNAME", "localhost"), utils.Getenv("DB_PORT", "3306"), utils.Getenv("DB_DATABASE", "zdv"))
-	seed.CheckSeeds()
+	models.Connect(utils.Getenv("DB_USERNAME", "root"), utils.Getenv("DB_PASSWORD", "secret"), utils.Getenv("DB_HOSTNAME", "localhost"), utils.Getenv("DB_PORT", "3306"), utils.Getenv("DB_DATABASE", "vatusa"))
 
 	log.Info("Configuring Gin Server")
 	server := NewServer(appenv)
@@ -79,7 +76,7 @@ func main() {
 	log.Info("Configuring scheduled jobs")
 	jobs := cron.New()
 	jobs.AddFunc("@every 1m", func() {
-		if err := models.DB.Where("created_at >= ?", time.Now().Add(time.Minute*30)).Delete(&dbTypes.OAuthLogin{}).Error; err != nil {
+		if err := models.DB.Where("created_at >= ?", time.Now().Add(time.Minute*30)).Delete(&models.OAuthLogin{}).Error; err != nil {
 			log4g.Category("job/cleanup").Error(fmt.Sprintf("Error cleaning up old codes: %s", err.Error()))
 		}
 	})

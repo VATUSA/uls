@@ -1,5 +1,5 @@
 /*
-   ZAU Single Sign-On
+   VATUSA Unified Login Scheme v3
    Copyright (C) 2021  Daniel A. Hawton <daniel@hawton.org>
 
    This program is free software: you can redistribute it and/or modify
@@ -16,27 +16,10 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package seed
+package models
 
-import (
-	"errors"
-
-	"github.com/dhawton/log4g"
-	"github.com/vzau/sso/database/models"
-	dbTypes "github.com/vzau/types/database"
-	"gorm.io/gorm"
-)
-
-var log = log4g.Category("seed")
-
-func CheckSeeds() {
-	// Check if Ratings should be seeded
-	log.Debug("Checking ratings")
-	var r = dbTypes.Rating{}
-	if err := models.DB.Where("ID = ?", 1).First(&r).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Debug("Check failed for Record Not Found, seeding Ratings")
-			SeedRating()
-		}
-	}
+type Rating struct {
+	ID    int    `json:"id" gorm:"type:int(2)"`
+	Long  string `json:"long" gorm:"type:varchar(18)"`
+	Short string `json:"short" gorm:"type:varchar(3)"`
 }

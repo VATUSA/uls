@@ -1,5 +1,5 @@
 /*
-   ZAU Single Sign-On
+   VATUSA Unified Login Scheme v3
    Copyright (C) 2021  Daniel A. Hawton <daniel@hawton.org>
 
    This program is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/dhawton/log4g"
-	dbTypes "github.com/vzau/types/database"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -51,7 +50,7 @@ func Connect(user string, pass string, hostname string, port string, database st
 		panic("Max attempts occured. Aborting startup.")
 	}
 
-	db.AutoMigrate(&dbTypes.OAuthClient{}, &dbTypes.OAuthLogin{}, &dbTypes.Rating{}, &dbTypes.Role{}, &dbTypes.User{})
+	db.AutoMigrate(&OAuthClient{}, &OAuthLogin{}, &Rating{}, &Controller{})
 
 	DB = db
 }

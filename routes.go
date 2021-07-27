@@ -1,5 +1,5 @@
 /*
-   ZAU Single Sign-On
+   VATUSA Unified Login Scheme v3
    Copyright (C) 2021  Daniel A. Hawton <daniel@hawton.org>
 
    This program is free software: you can redistribute it and/or modify
@@ -22,8 +22,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	v1 "github.com/vzau/sso/controllers/v1"
-	jwtMiddleware "github.com/vzau/sso/middleware/jwt"
+	v1 "github.com/vatusa/uls/controllers/v1"
+	jwtMiddleware "github.com/vatusa/uls/middleware/jwt"
 )
 
 func SetupRoutes(engine *gin.Engine) {

@@ -16,27 +16,38 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package main
+package models
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/vatusa/uls/middleware"
+	"encoding/json"
+	"time"
 )
 
-type Server struct {
-	engine *gin.Engine
+type OAuthClient struct {
+	ID           uint   `json:"id" gorm:"primaryKey"`
+	Name         string `json:"name" gorm:"primaryKey"`
+	ClientId     string `json:"client_id" gorm:"type:varchar(128)"`
+	ClientSecret string `json:"-" gorm:"type:varchar(255)"`
+	RedirectURIs string `json:"return_uris" gorm:"type:text"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
-func NewServer(appenv string) *Server {
-	server := Server{}
+func (c *OAuthClient) ValidURI(uri string) (bool, error) {
+	uris := []string{}
+	err := json.Unmarshal([]byte(c.RedirectURIs), &uris)
+	if err != nil {
+		return false, err
+	}
+	for _, v := range uris {
+		if uri == v {
+			return true, nil
+		}
+	}
 
-	engine := gin.New()
-	engine.Use(gin.Recovery())
-	engine.Use(middleware.Logger)
-	server.engine = engine
-	engine.LoadHTMLGlob("templates/*")
+	return false, nil
+}
 
-	SetupRoutes(engine)
-
-	return &server
+func (OAuthClient) TableName() string {
+	return "oauth_clients"
 }
