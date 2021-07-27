@@ -34,7 +34,6 @@ import (
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/vatusa/uls/database/models"
 	utils "github.com/vzau/common/utils"
-	dbTypes "github.com/vzau/types/database"
 )
 
 type TokenRequest struct {
@@ -68,7 +67,7 @@ func PostToken(c *gin.Context) {
 		return
 	}
 
-	login := dbTypes.OAuthLogin{}
+	login := models.OAuthLogin{}
 	if err := models.DB.Joins("Client").Where("code = ?", treq.Code).First(&login).Error; err != nil {
 		log4g.Category("controllers/token").Error(fmt.Sprintf("Code %s not found", treq.Code))
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request"})

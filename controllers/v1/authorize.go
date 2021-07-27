@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
+	"os"
 	"time"
 
 	"github.com/dhawton/log4g"
@@ -29,7 +31,6 @@ import (
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/vatusa/uls/database/models"
 	"github.com/vatusa/uls/utils"
-	dbTypes "github.com/vzau/types/database"
 )
 
 type AuthorizeRequest struct {
@@ -49,7 +50,7 @@ func GetAuthorize(c *gin.Context) {
 		return
 	}
 
-	client := dbTypes.OAuthClient{}
+	client := models.OAuthClient{}
 	if err := models.DB.Where("client_id = ?", req.ClientId).First(&client).Error; err != nil {
 		handleError(c, "Invalid Client ID Received.")
 		return
@@ -80,7 +81,7 @@ func GetAuthorize(c *gin.Context) {
 		return
 	}
 
-	login := dbTypes.OAuthLogin{
+	login := models.OAuthLogin{
 		Token:               token,
 		UserAgent:           c.Request.UserAgent(),
 		RedirectURI:         req.RedirectURI,
@@ -98,26 +99,15 @@ func GetAuthorize(c *gin.Context) {
 		return
 	}
 
-	/*	Leave this here, hopefully ULSv3 lets us send the return url instead of an ID #
-
-		scheme := "http"
-		if c.Request.TLS != nil && c.Request.TLS.HandshakeComplete {
-			scheme = "https"
-		}
-		returnUri := url.QueryEscape(fmt.Sprintf("%s://%s/v1/return", scheme, c.Request.Host)) */
+	redirectUri := utils.Getenv("VATSIM_REDIRECT_URI", "http://localhost.vatusa.net:3000/oauth/callback")
 
 	host, _, _ := net.SplitHostPort(c.Request.Host)
 	if host == "" {
 		host = c.Request.Host
 	}
-	log4g.Category("test").Debug(host)
 	c.SetCookie("sso_token", login.Token, int(time.Minute)*5, "/", host, false, true)
 
-	redirect_url := fmt.Sprintf("https://login.vatusa.net/uls/v2/login?fac=%s&url=%s&rfc7519_compliance", utils.Getenv("ULS_FACILITY_ID", "ZAU"), utils.Getenv("ULS_REDIRECT_ID", "1"))
+	vatsimUri := fmt.Sprintf("https://auth.vatsim.net/oauth/authorize?client_id=%s&redirect_uri=%s&scope=%s&response_type=code", os.Getenv("VATSIM_OAUTH_CLIENT_ID"), redirectUri, url.QueryEscape("full_name email vatsim_details country"))
 
-	/*
-		redirect_uri := url.QueryEscape(os.Getenv("VATSIM_REDIRECT_URI"))
-		vatsim_url := fmt.Sprintf("https://auth.vatsim.net/oauth/authorize?client_id=%s&redirect_uri=%s&scope=%s&response_type=code", os.Getenv("VATSIM_OAUTH_CLIENT_ID"), redirect_uri, url.QueryEscape("full_name email vatsim_details country"))
-	*/
-	c.Redirect(http.StatusTemporaryRedirect, redirect_url)
+	c.Redirect(http.StatusTemporaryRedirect, vatsimUri)
 }

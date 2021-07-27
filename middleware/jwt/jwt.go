@@ -29,7 +29,6 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/vatusa/uls/database/models"
-	dbTypes "github.com/vzau/types/database"
 	"gorm.io/gorm/clause"
 )
 
@@ -72,8 +71,8 @@ func Auth(c *gin.Context) {
 		return
 	}
 
-	user := &dbTypes.User{}
-	if err = models.DB.Where(&dbTypes.User{CID: uint(cid)}).Preload(clause.Associations).First(&user).Error; err != nil {
+	user := &models.Controller{}
+	if err = models.DB.Where(&models.Controller{CID: uint(cid)}).Preload(clause.Associations).First(&user).Error; err != nil {
 		log.Warning("No user found for %d: %s", cid, err.Error())
 		HandleRet(c, http.StatusInternalServerError, "Internal Server Error")
 		return

@@ -22,11 +22,11 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	dbTypes "github.com/vzau/types/database"
+	"github.com/vatusa/uls/database/models"
 )
 
 func GetInfo(c *gin.Context) {
-	user := c.Keys["x-user"].(*dbTypes.User)
+	user := c.Keys["x-user"].(*models.Controller)
 	if user == nil {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Not Found", "user": nil})
 	} else {
