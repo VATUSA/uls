@@ -19,7 +19,7 @@
 package models
 
 type Rating struct {
-	ID    int    `json:"id" gorm:"type:int(2)"`
+	ID    int    `json:"id" gorm:"type:int(2);primaryKey"`
 	Long  string `json:"long" gorm:"type:varchar(18)"`
 	Short string `json:"short" gorm:"type:varchar(3)"`
 }

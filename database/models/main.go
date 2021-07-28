@@ -50,7 +50,7 @@ func Connect(user string, pass string, hostname string, port string, database st
 		panic("Max attempts occured. Aborting startup.")
 	}
 
-	db.AutoMigrate(&OAuthClient{}, &OAuthLogin{}, &Rating{}, &Controller{})
+	db.AutoMigrate(&OAuthClient{}, &OAuthLogin{})
 
 	DB = db
 }

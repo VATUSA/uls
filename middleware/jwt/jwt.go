@@ -55,7 +55,7 @@ func Auth(c *gin.Context) {
 		HandleRet(c, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
-	log.Debug("Token '%s'", tokenString)
+
 	pubkeyset, _ := jwk.PublicSetOf(keyset)
 	token, err := jwt.Parse([]byte(tokenString), jwt.WithKeySet(pubkeyset), jwt.WithValidate(true))
 	if err != nil {

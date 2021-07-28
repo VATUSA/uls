@@ -23,18 +23,19 @@ package v1
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/dhawton/log4g"
 	"github.com/gin-gonic/gin"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/vatusa/uls/database/models"
-	"github.com/vatusa/uls/utils"
+	"gorm.io/gorm"
 )
 
 type OAuthResponse struct {
@@ -43,7 +44,7 @@ type OAuthResponse struct {
 }
 
 type UserData struct {
-	CID        int              `json:"cid"`
+	CID        string           `json:"cid"`
 	Personal   UserDataPersonal `json:"personal"`
 	VatsimData UserDataVatsim   `json:"vatsim"`
 }
@@ -78,23 +79,24 @@ type Result struct {
 var log = log4g.Category("controllers/callback")
 
 func GetCallback(c *gin.Context) {
-	token := c.Param("code")
-	if len(token) < 1 {
-		c.HTML(http.StatusInternalServerError, "error.tmpl", "Invalid response received from Authenticator or Authentication cancelled.")
+	token, exists := c.GetQuery("code")
+	if exists && len(token) < 1 {
+		log.Error("Invalid response, code: %s", token)
+		handleError(c, "Invalid response received from Authenicator or Authentication cancelled.")
 		return
 	}
 
 	cookie, err := c.Cookie("sso_token")
 	if err != nil {
 		log.Error("Could not parse sso_token cookie, expired? " + err.Error())
-		c.HTML(http.StatusInternalServerError, "error.tmpl", "Could not parse session cookie. Is it expired?")
+		handleError(c, "Could not parse session cookie.")
 		return
 	}
 
 	login := models.OAuthLogin{}
 	if err = models.DB.Where("token = ? AND created_at < ?", cookie, time.Now().Add(time.Minute*5)).First(&login).Error; err != nil {
 		log.Error("Token used that isn't in db, duplicate request? " + cookie)
-		c.HTML(http.StatusInternalServerError, "error.tmpl", "Token is invalid.")
+		handleError(c, "Token invalid.")
 		return
 	}
 
@@ -117,8 +119,10 @@ func GetCallback(c *gin.Context) {
 	codeResult := make(chan error)
 	userResult := make(chan error)
 
-	go SaveCode(&login, uint(vatsimUserData.UserData.CID), code, codeResult)
-	go CreateOrSaveUser(&vatsimUserData.UserData, userResult)
+	cid, err := strconv.ParseInt(vatsimUserData.UserData.CID, 10, 32)
+
+	go SaveCode(&login, uint(cid), code, codeResult)
+	go FindOrCreateUser(&vatsimUserData.UserData, uint(cid), userResult)
 
 	err = <-codeResult
 	if err != nil {
@@ -142,57 +146,56 @@ func SaveCode(login *models.OAuthLogin, cid uint, code string, result chan error
 	result <- models.DB.Save(&login).Error
 }
 
-func CreateOrSaveUser(userData *UserData, result chan error) {
+func FindOrCreateUser(userData *UserData, cid uint, result chan error) {
 	user := &models.Controller{}
-	if err := models.DB.Where("cid = ?", userData.CID).First(&user).Error; err != nil {
-		log.Info("New user login detected, adding to controllers table: %s", userData.CID)
-		homeController := 1
-		if userData.VatsimData.Division.Id != "USA" {
-			homeController = 0
-		}
-		user = &models.Controller{
-			CID:            uint(userData.CID),
-			FirstName:      userData.Personal.FirstName,
-			LastName:       userData.Personal.LastName,
-			Email:          userData.Personal.Email,
-			Rating:         userData.VatsimData.Rating,
-			Facility:       "ZAE",
-			HomeController: homeController,
-			CreatedAt:      time.Now(),
-			UpdatedAt:      time.Now(),
-		}
+	if err := models.DB.Where("cid = ?", cid).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Info("New user login detected, adding to controllers table: %s", userData.CID)
+			homeController := 1
+			if userData.VatsimData.Division.Id != "USA" {
+				homeController = 0
+			}
+			user = &models.Controller{
+				CID:            cid,
+				FirstName:      userData.Personal.FirstName,
+				LastName:       userData.Personal.LastName,
+				Email:          userData.Personal.Email,
+				Rating:         userData.VatsimData.Rating,
+				Facility:       "ZAE",
+				HomeController: homeController,
+				CreatedAt:      time.Now(),
+				UpdatedAt:      time.Now(),
+			}
 
-		if err := models.DB.Create(user).Error; err != nil {
-			log.Error("Error creating new user %d: %s", userData.CID, err.Error())
+			if err := models.DB.Create(user).Error; err != nil {
+				log.Error("Error creating new user %d: %s", userData.CID, err.Error())
+				result <- err
+			}
+		} else {
+			log.Error("Error finding user %d: %s", userData.CID, err.Error())
 			result <- err
 		}
-	} else {
-		// This update is not totally critical, so spin it off in a goroutine
-		// and if it fails, it fails mostly silently.
-		go func() {
-			user.CID = uint(userData.CID)
-			user.FirstName = userData.Personal.FirstName
-			user.LastName = userData.Personal.LastName
-			user.Email = userData.Personal.Email
-			user.Rating = userData.VatsimData.Rating
-			user.UpdatedAt = time.Now()
-			if err := models.DB.Save(user).Error; err != nil {
-				log.Error("Error updating user %d: %s", userData.CID, err.Error())
-			}
-		}()
 	}
 	result <- nil
 }
 
 func FetchFromVATSIM(token string, result chan Result) {
-	resp, err := http.Post(
-		fmt.Sprintf(
-			"https://auth.vatsim.net/oauth/token?grant_type=authorization_code&client_id=%s&client_secret=%s&redirect_uri=%s&code=%s",
-			os.Getenv("VATSIM_OAUTH_CLIENT_ID"),
-			os.Getenv("VATSIM_OAUTH_CLIENT_SECRET"),
-			url.QueryEscape(utils.Getenv("VATSIM_REDIRECT_URI", "http://localhost.vatusa.net:3000/oauth/callback")),
-			token,
-		), "application/json", bytes.NewBuffer(nil))
+	postData := map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     os.Getenv("VATSIM_OAUTH_CLIENT_ID"),
+		"client_secret": os.Getenv("VATSIM_OAUTH_CLIENT_SECRET"),
+		"redirect_uri":  os.Getenv("VATSIM_REDIRECT_URI"),
+		"code":          token,
+	}
+
+	postDataJson, err := json.Marshal(postData)
+	if err != nil {
+		log.Error("Error marshaling post data: %v, %s", postData, err)
+		result <- Result{err: err}
+		return
+	}
+
+	resp, err := http.Post("https://auth.vatsim.net/oauth/token", "application/json", bytes.NewBuffer(postDataJson))
 	if err != nil {
 		log.Error("Error getting token information from VATSIM: %s", err.Error())
 		result <- Result{err: err}
@@ -204,6 +207,12 @@ func FetchFromVATSIM(token string, result chan Result) {
 	if err = json.Unmarshal(body, &oauthresponse); err != nil {
 		log.Error("Error parsing JSON object from VATSIM: %s -- %s", string(body), err.Error())
 		result <- Result{err: err}
+		return
+	}
+
+	if resp.StatusCode != 200 {
+		log.Error("Error getting token information from VATSIM: %s", resp.Status)
+		result <- Result{err: errors.New(resp.Status)}
 		return
 	}
 

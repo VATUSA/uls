@@ -127,7 +127,7 @@ func PostToken(c *gin.Context) {
 		return
 	}
 	token := jwt.New()
-	token.Set(jwt.IssuerKey, utils.Getenv("SSO_ISSUERKEY", "auth.chicagoartcc.org"))
+	token.Set(jwt.IssuerKey, utils.Getenv("SSO_ISSUERKEY", "login.vatusa.net"))
 	token.Set(jwt.AudienceKey, login.Client.Name)
 	token.Set(jwt.SubjectKey, fmt.Sprint(login.CID))
 	token.Set(jwt.IssuedAtKey, time.Now())

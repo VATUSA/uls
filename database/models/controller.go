@@ -27,6 +27,7 @@ type Controller struct {
 	LastName       string    `json:"lastname" gorm:"type:varchar(100);column:lname"`
 	Email          string    `json:"-" gorm:"type:varchar(255);index;"`
 	Facility       string    `json:"facility" gorm:"type:varchar(4)"`
+	RatingId       int       `json:"-" gorm:"type:int(2);column:rating"`
 	Rating         Rating    `json:"rating"`
 	HomeController int       `json:"homeController" gorm:"type:int(1);column:flag_homecontroller"`
 	CreatedAt      time.Time `json:"created_at"`
