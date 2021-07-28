@@ -29,3 +29,6 @@ We will provide implementation examples in due time.
 References:
 1. OAuth 2.0 Authorization Framework RFC6749 https://datatracker.ietf.org/doc/html/rfc6749
 2. PKCE by OAuth Public Clients RFC7636 https://datatracker.ietf.org/doc/html/rfc7636
+3. JSON Web Key (JWK) RFC7517 https://datatracker.ietf.org/doc/html/rfc7517
+4. JSON Web Algorithms (JWA) RFC7518 https://www.rfc-editor.org/rfc/rfc7518.html
+5. JSON Web Token (JWT) RFC7519 https://datatracker.ietf.org/doc/html/rfc7519

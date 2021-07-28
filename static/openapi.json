@@ -1,14 +1,18 @@
 {
   "openapi": "3.0.2",
   "info": {
-    "title": "Chicago ARTCC OAuth2 Server",
-    "version": "1.0.0",
-    "description": "Documentation of the OAuth2 implementation at vZAU.  See RFC 6749 (https://tools.ietf.org/html/rfc6749) and RFC 7636 (https://datatracker.ietf.org/doc/html/rfc7636) for more details."
+    "title": "VATUSA OAuth2 Provider (ULSv3)",
+    "version": "3.0.0",
+    "description": "Documentation of the OAuth2 implementation.  See RFC 6749 (https://tools.ietf.org/html/rfc6749) and RFC 7636 (https://datatracker.ietf.org/doc/html/rfc7636) for more details.",
+    "contact": {
+      "name": "VATUSA Web Team",
+      "url": "https://www.vatusa.net",
+      "email": "vatusa12@vatusa.net"
+    }
   },
   "paths": {
-    "/v1/authorize": {
+    "/oauth/authorize": {
       "get": {
-        "tags": ["Authentication"],
         "description": "Initializes an OAuth 2.0 flow using a response_type=token. See RFC 6749 (https://tools.ietf.org/html/rfc6749) and RFC 7636 (https://datatracker.ietf.org/doc/html/rfc7636) for more details.",
         "operationId": "Authorize",
         "parameters": [
@@ -27,11 +31,11 @@
             "in": "query",
             "required": true,
             "x-is-map": false,
-            "description": "Only supported response_type is token",
+            "description": "Only supported response_type is code",
             "schema": {
               "type": "string",
               "enum": [
-                "token"
+                "code"
               ]
             }
           },
@@ -58,7 +62,7 @@
           {
             "name": "code_challenge",
             "in": "query",
-            "required": true,
+            "required": false,
             "x-is-map": false,
             "description": "The code_challenge value in the context of PKCE (RFC 7636).",
             "schema": {
@@ -68,12 +72,14 @@
           {
             "name": "code_challenge_method",
             "in": "query",
-            "required": true,
+            "required": false,
             "x-is-map": false,
             "description": "The method that was used to create the code_challenge (S256).",
             "schema": {
               "type": "string",
-              "enum": ["S256"]
+              "enum": [
+                "S256"
+              ]
             }
           },
           {
@@ -114,12 +120,12 @@
           "500": {
             "description": "unknown error"
           }
-        }
+        },
+        "summary": "OAuth2 Authorize"
       }
     },
-    "/v1/token": {
+    "/oauth/token": {
       "post": {
-        "tags": ["Authentication"],
         "description": "Request access_token using OAuth 2.0 grant_type: authorization_code. See RFC 6749 for more details.",
         "operationId": "Get Token",
         "parameters": [
@@ -200,7 +206,7 @@
           {
             "name": "code_verifier",
             "in": "query",
-            "required": true,
+            "required": false,
             "x-is-map": false,
             "description": "A random value of 43-256 characters. See https://tools.ietf.org/html/rfc7636#section-4 for details.  This parameter is required only when a code_challenge is provided with the authorization request for this session.",
             "schema": {
@@ -224,12 +230,12 @@
           "500": {
             "description": "Unknown error."
           }
-        }
+        },
+        "summary": "OAuth2 Token"
       }
     },
-    "/v1/certs": {
+    "/oauth/certs": {
       "get": {
-        "tags": ["Authentication"],
         "operationId": "Get JWK Keyset",
         "description": "",
         "responses": {
@@ -245,15 +251,6 @@
                       "items": {
                         "type": "string"
                       },
-                      "example": [
-                        {
-                          "kty": "RSA",
-                          "kid": "default_ssl_key",
-                          "use": "sig",
-                          "n": "58BezRBeYOM3rOo1vcllcLc8QAwz6AmQj4EvGUqATMUz4bfYJ9Lf2wb9xCQhSLSkndfFAF5V754G0mRelBGK7yIja-M-EBXoJeT3nvwA46g7MkZGf11uP2dz2k4CkLdFHnlGzvuLQVBQpqbz-O_hFfEDxBk9zV4shR8O_iGv4fDi0dNHZfXzxkr_iH8Oj2qQeZFvv61I4RffeNmx04lYea2KFsF_8rWDlENWAr8RbqpY_y5lbxgC_xyBunTkoIEommqz55ZFIcklYerJUVSeIA90KMyM60wZh0JF_T5kuXEs-3AWh8Bkx-sVE2hu5S5x4_lADsPojLwWTT7or_sw9Q",
-                          "e": "AQAB"
-                        }
-                      ],
                       "description": "JWK set in JSON array format"
                     }
                   }
@@ -264,14 +261,48 @@
           "500": {
             "description": "unknown error"
           }
-        }
+        },
+        "summary": "Get Certificates"
+      }
+    },
+    "/v1/info": {
+      "get": {
+        "summary": "Get User Info",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "operationId": "get-v1-info",
+        "security": [
+          {
+            "OAuth2 Issued Token": []
+          }
+        ]
       }
     }
   },
   "servers": [
     {
-      "url": "https://auth.chicagoartcc.org",
-      "description": "Production OAuth2 Server"
+      "url": "https://login.vatusa.net",
+      "description": "Production OAuth2 Provider"
     }
   ],
   "components": {
@@ -322,6 +353,61 @@
           }
         },
         "title": "TokenData"
+      },
+      "User": {
+        "title": "User",
+        "type": "object",
+        "properties": {
+          "cid": {
+            "type": "integer"
+          },
+          "firstname": {
+            "type": "string"
+          },
+          "lastname": {
+            "type": "string"
+          },
+          "facility": {
+            "type": "string"
+          },
+          "rating": {
+            "$ref": "#/components/schemas/Rating"
+          },
+          "homeController": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
+      "Rating": {
+        "title": "Rating",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "short": {
+            "type": "string"
+          },
+          "long": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "OAuth2 Issued Token": {
+        "type": "http",
+        "scheme": "bearer"
       }
     }
   }

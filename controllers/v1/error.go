@@ -16,34 +16,12 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package main
+package v1
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
-	v1 "github.com/vatusa/uls/controllers/v1"
-	jwtMiddleware "github.com/vatusa/uls/middleware/jwt"
 )
 
-func SetupRoutes(engine *gin.Engine) {
-	engine.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "PONG"})
-	})
-
-	OAuthRouter := engine.Group("/oauth")
-	{
-		OAuthRouter.GET("/authorize", v1.GetAuthorize)
-		OAuthRouter.GET("/callback", v1.GetCallback)
-		OAuthRouter.GET("/certs", v1.GetCerts)
-		OAuthRouter.POST("/token", v1.PostToken)
-		OAuthRouter.GET("/error", v1.GetError)
-	}
-
-	v1Router := engine.Group("/v1")
-	{
-		v1Router.GET("/info", jwtMiddleware.Auth, v1.GetInfo)
-	}
-	engine.StaticFile("/", "./static/index.html")
-	engine.StaticFS("/static", http.Dir("static"))
+func GetError(c *gin.Context) {
+	handleError(c, "Error Test")
 }
