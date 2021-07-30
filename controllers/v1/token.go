@@ -131,7 +131,6 @@ func PostToken(c *gin.Context) {
 	token.Set(jwt.AudienceKey, login.Client.Name)
 	token.Set(jwt.SubjectKey, fmt.Sprint(login.CID))
 	token.Set(jwt.IssuedAtKey, time.Now())
-	token.Set("jku", "https://login.vatusa.net/oauth/certs")
 	token.Set(jwt.ExpirationKey, time.Now().Add((time.Hour * 24 * 7)).Unix())
 
 	signed, err := jwt.Sign(token, jwa.SignatureAlgorithm(key.Algorithm()), key)

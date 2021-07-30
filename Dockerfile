@@ -16,6 +16,5 @@ FROM alpine:latest
 RUN mkdir -p /app/templates
 COPY --from=builder /app/app /app/sso
 ADD templates /app/templates
-RUN ls /app && echo "----" && ls /app/templates
 WORKDIR /app
 ENTRYPOINT [ "./sso" ]
