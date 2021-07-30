@@ -48,7 +48,7 @@ jobs:
         env:
           KUBE_CONFIG: ${{ secrets.KUBECTL }}
         with:
-          args: set image deployment/uls auth=${{ steps.prep.outputs.image }}:${{ steps.prep.outputs.version }} -n dev
+          args: set image deployment/uls uls=${{ steps.prep.outputs.image }}:${{ steps.prep.outputs.version }} -n dev
       - name: Verify deployment
         if: ${{ github.event_name != 'pull_request' }}
         uses: actions-hub/kubectl@master
