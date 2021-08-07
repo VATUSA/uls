@@ -17,8 +17,8 @@ COPY --from=builder /app/app /app/sso
 ADD templates /app/templates
 ADD static /app/static
 
-RUN groupadd -r app && useradd --no-log-init -r -g app app && chown -R app:app /app
+RUN addgroup -S app && adduser -S -D -h /app -G app app && chown -R app:app /app
 
+USER app
 WORKDIR /app
-USER app:app
 ENTRYPOINT [ "./sso" ]
